@@ -1,0 +1,140 @@
+﻿@{
+    Page.Title = "Manage Products";
+    Layout = "~/_SiteLayout.cshtml";
+
+    // Declare a bunch of variables to get any post data from the user
+    int productID, supplierID, categoryID;
+    string productName, quantity, pid, sid, cid, up, stock, order, reorder, disc;
+    decimal unitPrice;
+    short inStock, onOrder, reorderLevel;
+    bool isDiscontinued;
+
+
+
+    // Pull the data from the Request.Form collection
+    // 1) The selected product ID and the command
+    string current = Request.Form["currentProducts"];
+    string command = Request.Form["command"];
+
+    // 2) The data on the product entered into the form.
+    pid = Request.Form["productID"];
+    productName = Request.Form["productName"];
+    sid = Request.Form["supplierID"];
+    cid = Request.Form["categoryID"];
+    quantity = Request.Form["qtyPerUnity"];
+    up = Request.Form["price"];
+    stock = Request.Form["inStock"];
+    order = Request.Form["onOrder"];
+    reorder = Request.Form["reorder"];
+    disc = Request.Form["discontinued"]; // checkox -> "on"
+    isDiscontinued = !string.IsNullOrEmpty(disc);
+
+    var db = Database.Open("NorthWind");
+
+    if (IsPost || !string.IsNullOrEmpty(Request.QueryString["editID"]))
+    {
+        if (command == "select" || !string.IsNullOrEmpty(Request.QueryString["editID"]))
+        {
+            if (!string.IsNullOrEmpty(Request.QueryString["editID"]))
+            {
+                current = Request.QueryString["editID"];
+            }
+            // Looking up a specific product to display
+            int currentProductID;
+            if (int.TryParse(current, out currentProductID))
+            {
+                string selectQuery = "SELECT ProductID, ProductName, SupplierID, CategoryID, QuantityPerUnit, UnitPrice, UnitsInStock, UnitsOnOrder,ReorderLevel, Discontinued FROM Products WHERE ProductID = @0";
+
+                // Notice the use of QuerySigle - We expect only one product.
+                var selectedProduct = db.QuerySingle(selectQuery, currentProductID);
+
+                // "Unpack" the selectedProduct into the strings that are noted in our input's value attributes
+                pid = selectedProduct.ProductID.ToString(); // int
+                productName = selectedProduct.ProductName;
+                quantity = selectedProduct.QuantityPerUnit;
+                up = selectedProduct.UnitPrice.ToString(); // Decimal
+                stock = selectedProduct.UnitsInStock.ToString(); // Short
+                order = selectedProduct.UnitsOnOrder.ToString(); // Short
+                reorder = selectedProduct.ReorderLevel.ToString(); // Short
+
+                // Data for the drop downs
+                sid = selectedProduct.SupplierID.ToString();// int?
+                cid = selectedProduct.CategoryID.ToString();// int?
+
+                // Data for the checkkbox
+                isDiscontinued = selectedProduct.Discontinued;
+            }
+            else
+            {
+                //<div>Please choose a product before clicking the [Select Product] button</div>
+                ErrorMessage("Please choose a produt before clicking the [Select Product] button");
+            }
+        }
+    }
+
+    // Get all products, categories, and supplier for the drop downs
+    var allProducts = db.Query("SELECT ProductID, ProductName FROM Products");
+    var allSuppliers = db.Query("SELECT SupplierID, CompanyName FROM Suppliers");
+    var allCategories = db.Query("SELECT CategoryID, CategoryName FROM Categories");
+}
+
+<form method="post">
+    <label for="currentProducts"></label>
+    <select id="currentProducts" name="currentProducts">
+        <option value="">[Select a Product]</option>
+        @foreach (var item in allProducts)
+        {
+            <option selected="@(current == item.ProductID.ToString())" value="@item.ProductID">@item.ProductName</option>
+        }
+    </select>
+    <button type="submit" name="command" value="select">Select Product</button>
+
+
+    <fieldset>
+        <legend>Product Details</legend>
+        Product ID<input type="text" name="productID" value="@pid" disabled /><br />
+        Product Name<input type="text" name="productName" value="@productName" /><br />
+
+        Supplier
+        <select name="supplierID">
+            <option value="">[No Supplier]</option>
+            @foreach (var item in allSuppliers)
+            {
+                <option selected="@(sid == item.SupplierID.ToString())" 
+                     value="@item.SupplierID">@item.CompanyName</option>
+            }
+        </select><br />
+
+        Category
+        <select name="categoryID">
+            <option value="">[No Category]</option>
+            @foreach (var item in allCategories)
+            {
+                <option selected="@(cid == item.CategoryID.ToString())" 
+                     value="@item.CategoryID">@item.CategoryName</option>
+            }
+        </select><br />
+
+        Quantity/Unit <input type="text" name="qtyPerUnity" value="@quantity" /><br />
+        Unit Price <input type="text" name="price" value="@up" /><br />
+        In Stock <input type="number" name="inStock" value="@stock" /><br />
+        On Order <input type="number" name="onOrder" value="@order" /><br />
+        Reorder Level <input type="number" name="reorder" value="@reorder" /><br />
+        Discontinued <input type="checkbox" name="discontinued" checked="@isDiscontinued" /><br />
+    </fieldset>
+    <button type="submit" name="command" value="add">Add Product</button>
+    <button type="submit" name="command" value="update">Update Product</button>
+    <button type="submit" name="command" value="delete">Delte Product</button>
+</form>
+
+@helper ErrorMessage(string message) { 
+    // Helpers are resusable snippets of Razor syntax exposed as a method.
+    // Helpers are able to render HTML directly, while functions do not render any HTML.
+    <div style="color:red">@message</div>
+}
+
+@functions{
+    // A Functions section is used to place any page-global functions that can be called from within the page.
+    // It's one way to "modularize" aspects of your Razor web page's server-side proessing.
+    // Functions should be thought of as static utility methods
+}

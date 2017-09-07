@@ -1,0 +1,13 @@
+﻿Methods on the Validation property of the Webpage base class appled to all Razor pages:
+	.RequiredField(string field, string errorMessage)
+	.Add(string field, params IValidator[] Validators) AND .Add(IEnumberable<string> fields, params IValidator[] validators)
+
+Static methods on the Validator factor class for creating different kinds of validators
+	.StringLength(int maxLength, int minLength=0, string errorMessage = null)
+	.Range (double minValue, double maxValue, string errorMessage = null)
+	.Decimal (string errorMessage = null)
+	.Integer (string errorMessage = null)
+	.Url (string errorMessage = null)
+	.DateTime (string errorMessage = null)
+
+@Html.ValidationSummary and @Html.ValidationMessage

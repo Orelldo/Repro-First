@@ -1,0 +1,55 @@
+﻿@{
+    Page.Title = "Search Products By Category";
+    Layout = "~/_SiteLayout.cshtml";
+
+    var db = Database.Open("NorthWind");
+    var allCategories = db.Query("Select CategoryID, CategoryName FROM Categories");
+}
+
+<div>
+    <h1>Search Products by Category</h1>
+    <form method="post">
+        Category:
+        <select name="selectedCategory">
+            <option value="">[Select a Category]</option>
+            @foreach (var item in allCategories)
+            {
+                <option value="@item.CategoryID">@item.CategoryName</option>
+            }
+        </select>
+        <button type="submit">Search</button>
+    </form>
+    @if (IsPost)
+    {
+        <hr />
+        int catID;
+        // Try to get a category ID from the drop-down
+        if (int.TryParse(Request.Form["selectedCategory"], out catID))
+        {
+            //var products = db.Query("SELECT * FROM Products WHERE CategoryID = @0", catID);
+            var products = db.Query("SELECT ProductID, ProductName, QuantityPerUnit, UnitPrice, UnitsInStock FROM Products WHERE CategoryID = @0", catID);
+            // Create a WebGrid with the reslting data
+            var myGrid = new WebGrid(products);
+            <div>
+                <h3>Products</h3>
+                @myGrid.GetHtml(columns: myGrid.Columns(
+                    myGrid.Column(columnName: "ProductName",
+                                    header: "Product Name"),
+                    myGrid.Column(columnName: "QuantityPerUnit",
+                                    header: "Qty/Unit"),
+                    myGrid.Column(columnName: "UnitPrice",
+                                    header: "Unit Price"),
+                    myGrid.Column(columnName: "UnitsInStock",
+                                    header: "Units In Stock"),
+                    myGrid.Column(columnName: "ProductID",
+                                    header: "Action",
+                                    format: @<text><a href="~/Admin/ManageProducts.cshtml?editID=@item.ProductID">Edit</a></text>)
+                ))
+            </div>
+        }
+        else
+        {
+            <div>Please select a category before searching for products</div>
+        }
+    }
+</div>

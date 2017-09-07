@@ -1,0 +1,68 @@
+﻿@{
+    Page.Title = "Search Product By Supplier";
+    Layout = "~/_SiteLayout.cshtml";
+
+    var db = Database.Open("NorthWind");
+    string displayNameQuery = "SELECT SupplierID, CompanyName FROM Suppliers ORDER BY SupplierID";
+    var displaySuppliers = db.Query(displayNameQuery);
+
+    string command = Request.Form["command"];
+}
+
+<div>
+    <h1>Search Product By Supplier</h1>
+    <form method="post">
+        <fieldset>
+            <legend>Search Form</legend>
+            <label>Supplier ID</label>
+            <input type="search" name="supplierID" placeholder="Supplier ID" />
+            <button type="submit" name="command" value="submit">Search</button>
+            <button type="submit" name="command" value="clear">Clear Search</button>
+        </fieldset>
+        @if (!IsPost || command == "reset")
+        {
+            foreach (var row in displaySuppliers)
+            {
+                <table>
+                    <tr>
+                        <td>Supplier ID</td>
+                        <td>Company Name</td>
+                    </tr>
+                    <tr>
+                        <td>@row.SupplierID</td>
+                        <td>@row.CompanyName</td>
+                    </tr>
+                </table>
+            }
+        }
+    </form>
+
+    @if (IsPost && command != "clear")
+    {
+        string searchByIDQuery = "SELECT ProductID, ProductName, QuantityPerUnit,UnitPrice, UnitsInStock FROM Products WHERE SupplierID = @0";
+
+        string searchID = Request.Form["supplierID"];
+
+        var result = db.Query(searchByIDQuery, searchID);
+
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Qty/Unit</th>
+                <th>Price</th>
+                <th>In-Stock</th>
+            </tr>
+            @foreach (var row in result)
+            {
+                <tr>
+                    <td>@row.ProductID</td>
+                    <td>@row.ProductName</td>
+                    <td>@row.QuantityPerUnit</td>
+                    <td>@row.UnitPrice</td>
+                    <td>@row.UnitsInStock</td>
+                </tr>
+            }
+        </table>
+    }
+</div>

@@ -1,0 +1,90 @@
+﻿@{      
+    Page.Title = "Manage Categories";
+    Layout = "~/_SiteLayout.cshtml";
+
+    // Page global variables for the form's content
+    string catID, catName, description, picture, mimeType;
+    catID = catName = description = picture = mimeType = null;
+
+    // Set up some validation settings for the forms input
+    // For server-side validation
+    this.Validation.RequireField("catName", "Category name must be supplied");
+    Validation.Add("catName", Validator.StringLength(16, 3, "Category must be between 3 and 16 characters long"));
+
+    var db = Database.Open("NorthWind");
+
+    // Process Post request
+    if (IsPost)
+    {
+        string command = Request.Form["command"];
+        switch (command)
+        {
+            case "create":
+                if (Validation.IsValid())
+                {
+                    // Checking Validation.IsValid will trigger the validationSummary contents
+                    catName = Request.Form["catName"];
+                }
+                break;
+            case "read": // Lookup a single category
+                var queryOneCategory = "SELECT CategoryID, CategoryName, Description, Picture, PictureMimeType FROM Categories WHERE CategoryID = @0";
+                int searchID;
+
+                if (int.TryParse(Request.Form["selectedCategory"], out searchID))
+                {
+                    var foundCategory = db.QuerySingle(queryOneCategory, searchID);
+                    catID = foundCategory.CategoryID.ToString();
+                    catName = foundCategory.CategoryName;
+                    description = foundCategory.Description;
+                    picture = Convert.ToBase64String(foundCategory.Picture);
+                    mimeType = foundCategory.PictureMimeType;
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    // Get data for drop-down
+    var queryAllCategories = "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryName";
+
+    var allCategories = db.Query(queryAllCategories);
+}
+
+<form method="post">
+    <h1>Manage Categories</h1>
+
+    Category:
+    <select name="selectedCategory">
+        <option value="">[Select a Category]</option>
+        @foreach (var item in allCategories)
+        {
+            <option value="@item.CategoryID">@item.CategoryName</option>
+        }
+    </select>
+    <button type="submit" name="command" value="read" formnovalidate>Lookup Category</button>
+
+    <hr />
+    @Html.ValidationSummary()
+
+    <fieldset>
+        <legend>Category Details</legend>
+
+        <label>Category ID</label>
+        <input type="text" name="catID" value="@catID" />
+
+        <label>Name</label>
+        <input type="text" name="catName" value="@catName" required />
+
+        <label>Description</label>
+        <input type="text" name="description" value="@description" />
+
+        <label>Picuture</label>
+        @if (!string.IsNullOrEmpty(picture))
+        {
+            <img src="data:@mimeType;base64,@picture" alt="Alternate Text" />
+        }
+    </fieldset>
+    <button type="submit" name="command" value="create">Add new Category</button>
+</form>
